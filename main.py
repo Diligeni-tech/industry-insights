@@ -69,12 +69,22 @@ async def analyze(
     if not selected_sectors:
         raise HTTPException(status_code=400, detail="At least one sector must be specified.")
 
-    invalid = [s for s in selected_sectors if s not in AVAILABLE_SECTORS]
-    if invalid:
+ # Normalize sectors — accept both kebab-case and title case
+sector_map = {s.lower().replace(" ", "-").replace("&", "").replace("  ", "-"): s for s in AVAILABLE_SECTORS}
+normalized_sectors = []
+for s in selected_sectors:
+    # Try exact match first
+    if s in AVAILABLE_SECTORS:
+        normalized_sectors.append(s)
+    # Try kebab-case lookup
+    elif s.lower() in sector_map:
+        normalized_sectors.append(sector_map[s.lower()])
+    else:
         raise HTTPException(
             status_code=400,
-            detail=f"Unknown sector(s): {invalid}. Available: {AVAILABLE_SECTORS}",
+            detail=f"Unknown sector: {s}. Available: {AVAILABLE_SECTORS}",
         )
+selected_sectors = normalized_sectors
 
     text_parts: list[str] = []
     for upload in files:
