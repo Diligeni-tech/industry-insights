@@ -14,11 +14,11 @@ SYSTEM_PROMPT = (
 )
 
 JSON_SCHEMA = """{
-  "key_themes": ["3–6 key themes observed across the notes"],
-  "notable_gps": ["General Partners or fund managers mentioned or implied"],
-  "market_signals": ["3–5 market signals or macro/sector trends identified"],
-  "opportunities": ["3–5 investment opportunities or attractive dynamics for LPs"],
-  "risks": ["3–5 risks or concerns LPs should monitor"]
+  "key_themes": ["3-5 overarching narratives or patterns observed ACROSS multiple conversations — not single data points"],
+  "notable_gps": ["Specific fund managers, firms, or investment vehicles mentioned by name — include context on why they were mentioned"],
+  "market_signals": ["3-5 specific quantitative or qualitative market signals — pricing, metrics, timing, or structural shifts grounded in the notes"],
+  "opportunities": ["3-5 specific actionable investment angles for an LP — each must be distinct from themes and signals above"],
+  "risks": ["3-5 specific concerns that would cause an LP to pause, reduce allocation, or pass — must be distinct from opportunities"]
 }"""
 
 
@@ -27,11 +27,14 @@ def _build_user_prompt(sector: str, notes_text: str) -> str:
         f'Analyze the following call and meeting notes from the perspective of an institutional LP '
         f'and generate a structured insight report for the "{sector}" sector.\n\n'
         f"NOTES:\n{notes_text}\n\n"
-        f"Respond ONLY with a JSON object matching this schema exactly:\n{JSON_SCHEMA}\n\n"
-        f"Each list item should be a concise, actionable insight (1–2 sentences). "
-        f"If a category has no relevant information in the notes, return an empty list []."
+        f"Rules:\n"
+        f"1. Each insight must be grounded in something specific from the notes — no generic sector commentary.\n"
+        f"2. Never repeat the same point across sections — each section must contain distinct information.\n"
+        f"3. key_themes are patterns across conversations. market_signals are specific data points. "
+        f"opportunities are actionable LP angles. risks are LP-specific concerns. notable_gps are named entities only.\n"
+        f"4. Each list item should be 1-2 concise sentences. If a category has no relevant information, return [].\n\n"
+        f"Respond ONLY with a JSON object matching this schema exactly:\n{JSON_SCHEMA}"
     )
-
 
 def _strip_fences(text: str) -> str:
     """Remove markdown code fences if Claude wraps the JSON despite instructions."""
