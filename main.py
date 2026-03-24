@@ -23,6 +23,14 @@ AVAILABLE_SECTORS = [
     "Cybersecurity",
 ]
 
+
+def _normalize_sector_key(value: str) -> str:
+    """Create a stable lookup key for sector names and user input."""
+    return "-".join(
+        value.lower().replace("&", " ").replace("_", " ").replace("-", " ").split()
+    )
+
+
 app = FastAPI(
     title="Industry Insights API",
     description="Ingests call/meeting notes and generates structured LP sector insight reports.",
@@ -69,24 +77,25 @@ async def analyze(
     if not selected_sectors:
         raise HTTPException(status_code=400, detail="At least one sector must be specified.")
 
- # Normalize sectors — accept both kebab-case and title case
-sector_map = {s.lower().replace(" ", "-").replace("&", "").replace("  ", "-"): s for s in AVAILABLE_SECTORS}
-normalized_sectors = []
-for s in selected_sectors:
-    # Try exact match first
-    if s in AVAILABLE_SECTORS:
-        normalized_sectors.append(s)
-    # Try kebab-case lookup
-    elif s.lower() in sector_map:
-        normalized_sectors.append(sector_map[s.lower()])
-    else:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Unknown sector: {s}. Available: {AVAILABLE_SECTORS}",
-        )
-selected_sectors = normalized_sectors
+    # Normalize sectors — accept title case, kebab-case, and underscore variants
+    sector_map = {_normalize_sector_key(s): s for s in AVAILABLE_SECTORS}
+    normalized_sectors = []
+    for s in selected_sectors:
+        # Try exact match first
+        if s in AVAILABLE_SECTORS:
+            normalized_sectors.append(s)
+        # Try normalized lookup
+        elif _normalize_sector_key(s) in sector_map:
+            normalized_sectors.append(sector_map[_normalize_sector_key(s)])
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unknown sector: {s}. Available: {AVAILABLE_SECTORS}",
+            )
 
-    text_parts: list[str] = []
+    selected_sectors = normalized_sectors
+
+    text_parts: List[str] = []
     for upload in files:
         content = await upload.read()
         try:
